@@ -34,6 +34,7 @@ public class TaskInfos {
       throws InvalidTaskSpecificationException {
     ObjectMapper o = new ObjectMapper();
     try {
+
       TaskInfo t = o.readValue(new File(taskDirectory, "task.json"), TaskInfo.class);
       t.setTaskId(taskId);
       if (t.getStartingPointFiles() == null) {

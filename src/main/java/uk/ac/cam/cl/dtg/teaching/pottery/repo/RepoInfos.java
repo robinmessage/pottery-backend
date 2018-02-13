@@ -29,7 +29,7 @@ public class RepoInfos {
   /** Look up a repo from the database by its repoId. */
   public static RepoInfo getByRepoId(String repoId, QueryRunner q) throws SQLException {
     return q.query(
-        "SELECT repoid,taskid,using_testing_version,expiryDate,remote from repos where repoid=?",
+        "SELECT repoid,taskid,using_testing_version,expiryDate,remote,language from repos where repoid=?",
         rs -> {
           rs.next();
           return new RepoInfo(
@@ -37,7 +37,8 @@ public class RepoInfos {
               rs.getString(2),
               rs.getBoolean(3),
               new Date(rs.getTimestamp(4).getTime()),
-              rs.getString(5));
+              rs.getString(5),
+              rs.getString(6));
         },
         repoId);
   }
@@ -45,12 +46,13 @@ public class RepoInfos {
   /** Insert this repo in to the database. */
   public static void insert(RepoInfo repoInfo, QueryRunner q) throws SQLException {
     q.update(
-        "INSERT INTO repos(repoid,taskid,using_testing_version,expiryDate, remote) "
-            + "values (?,?,?,?,?)",
+        "INSERT INTO repos(repoid,taskid,using_testing_version,expiryDate, remote, language) "
+            + "values (?,?,?,?,?, ?)",
         repoInfo.getRepoId(),
         repoInfo.getTaskId(),
         repoInfo.isUsingTestingVersion(),
         new Timestamp(repoInfo.getExpiryDate().getTime()),
-        repoInfo.getRemote());
+        repoInfo.getRemote(),
+        repoInfo.getLanguage());
   }
 }

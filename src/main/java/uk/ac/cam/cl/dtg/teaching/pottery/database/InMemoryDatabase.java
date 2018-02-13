@@ -43,7 +43,8 @@ public class InMemoryDatabase implements Database {
                 + "taskid character varying(255) NOT NULL, "
                 + "using_testing_version boolean DEFAULT true NOT NULL, "
                 + "expirydate timestamp with time zone, "
-                + "remote character varying(255) default '' NOT NULL"
+                + "remote character varying(255) default '' NOT NULL,"
+                + "language character varying(255) default '' NOT NULL"
                 + ");");
 
         queryRunner.update(

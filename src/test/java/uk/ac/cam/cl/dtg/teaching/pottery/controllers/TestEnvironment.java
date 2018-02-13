@@ -66,6 +66,7 @@ import uk.ac.cam.cl.dtg.teaching.programmingtest.containerinterface.ValidatorRes
 
 class TestEnvironment {
 
+  private static final String DEFAULT_LANGUAGE = "java";
   private final String testRootDir;
   private final TaskFactory taskFactory;
   private final RepoFactory repoFactory;
@@ -99,7 +100,7 @@ class TestEnvironment {
     calendar.add(Calendar.YEAR, 10);
     Repo repo =
         repoFactory.createInstance(
-            task.getTaskId(), true, calendar.getTime(), RepoInfo.REMOTE_UNSET);
+            task.getTaskId(), true, calendar.getTime(), RepoInfo.REMOTE_UNSET, DEFAULT_LANGUAGE);
     try (TaskCopy c = task.acquireTestingCopy()) {
       repo.copyFiles(c);
     }

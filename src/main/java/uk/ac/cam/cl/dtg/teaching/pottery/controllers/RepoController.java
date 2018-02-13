@@ -60,7 +60,7 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
 
   @Override
   public RepoInfo makeRemoteRepo(
-      String taskId, Boolean usingTestingVersion, Integer validityMinutes, String remote)
+      String taskId, Boolean usingTestingVersion, Integer validityMinutes, String remote, String language)
       throws TaskNotFoundException, RepoExpiredException, RepoStorageException,
           RetiredTaskException, RepoNotFoundException {
     if (taskId == null) {
@@ -87,7 +87,7 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
       throw new RetiredTaskException("Cannot start a new repository for task " + taskId);
     }
     try (TaskCopy c = usingTestingVersion ? t.acquireTestingCopy() : t.acquireRegisteredCopy()) {
-      Repo r = repoFactory.createInstance(taskId, usingTestingVersion, expiryDate, remote);
+      Repo r = repoFactory.createInstance(taskId, usingTestingVersion, expiryDate, remote, language);
       RepoInfo info = r.toRepoInfo();
       if (!info.isRemote()) {
         r.copyFiles(c);
@@ -97,10 +97,10 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
   }
 
   @Override
-  public RepoInfo makeRepo(String taskId, Boolean usingTestingVersion, Integer validityMinutes)
+  public RepoInfo makeRepo(String taskId, Boolean usingTestingVersion, Integer validityMinutes, String language)
       throws TaskNotFoundException, RepoExpiredException, RepoNotFoundException,
           RetiredTaskException, RepoStorageException {
-    return makeRemoteRepo(taskId, usingTestingVersion, validityMinutes, RepoInfo.REMOTE_UNSET);
+    return makeRemoteRepo(taskId, usingTestingVersion, validityMinutes, RepoInfo.REMOTE_UNSET, language);
   }
 
   @Override
