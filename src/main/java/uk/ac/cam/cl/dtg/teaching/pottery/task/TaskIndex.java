@@ -65,7 +65,7 @@ public class TaskIndex {
     for (Task t : definedTasks.values()) {
       if (!t.isRetired()) {
         try (TaskCopy c = t.acquireTestingCopy()) {
-          r.add(c.getInfo());
+          r.add(c.getBaseInfo());
         } catch (TaskNotFoundException e) {
           // Ignore missing tasks
         }
@@ -80,7 +80,7 @@ public class TaskIndex {
     for (Task t : definedTasks.values()) {
       if (!t.isRetired()) {
         try (TaskCopy c = t.acquireRegisteredCopy()) {
-          r.add(c.getInfo());
+          r.add(c.getBaseInfo());
         } catch (TaskNotFoundException e) {
           // Ignore unregistered tasks
         }
@@ -92,14 +92,14 @@ public class TaskIndex {
   /** Get the TaskInfo for the testing version of this task. */
   public TaskInfo getTestingTaskInfo(String taskId) throws TaskNotFoundException {
     try (TaskCopy t = getTask(taskId).acquireTestingCopy()) {
-      return t.getInfo();
+      return t.getBaseInfo();
     }
   }
 
   /** Get the TaskInfo for the registered version of this task. */
   public TaskInfo getRegisteredTaskInfo(String taskId) throws TaskNotFoundException {
     try (TaskCopy t = getTask(taskId).acquireRegisteredCopy()) {
-      return t.getInfo();
+      return t.getBaseInfo();
     }
   }
 

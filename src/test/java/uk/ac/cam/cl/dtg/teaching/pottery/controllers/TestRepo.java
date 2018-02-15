@@ -21,11 +21,14 @@ package uk.ac.cam.cl.dtg.teaching.pottery.controllers;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.io.Charsets;
 import org.eclipse.jgit.api.Git;
@@ -35,17 +38,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import uk.ac.cam.cl.dtg.teaching.pottery.FileUtil;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.CriterionNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoExpiredException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoFileNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoStorageException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoTagNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RetiredTaskException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskStorageException;
+import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.*;
+import uk.ac.cam.cl.dtg.teaching.pottery.model.TaskInfo;
 import uk.ac.cam.cl.dtg.teaching.pottery.repo.Repo;
 import uk.ac.cam.cl.dtg.teaching.pottery.task.Task;
+import uk.ac.cam.cl.dtg.teaching.pottery.task.TaskCopy;
 
 public class TestRepo {
 
@@ -57,8 +54,8 @@ public class TestRepo {
   @Before
   public void setup()
       throws IOException, GitAPIException, TaskStorageException, SQLException,
-          TaskNotFoundException, CriterionNotFoundException, RetiredTaskException,
-          RepoExpiredException, RepoNotFoundException, RepoStorageException {
+      TaskNotFoundException, CriterionNotFoundException, RetiredTaskException,
+      RepoExpiredException, RepoNotFoundException, RepoStorageException, InvalidTaskSpecificationException {
 
     this.testRootDir = Files.createTempDir().getCanonicalFile();
     this.testEnvironment = new TestEnvironment(testRootDir.getPath());
@@ -146,5 +143,45 @@ public class TestRepo {
 
     // ASSERT
     assertThat(foundSha).isEqualTo(headSha);
+  }
+
+  @Test
+  public void checkMultiLanguageTaskLoads() throws TaskNotFoundException, RepoExpiredException, RepoNotFoundException, RepoStorageException, TaskStorageException, GitAPIException, CriterionNotFoundException, RetiredTaskException, IOException, InvalidTaskSpecificationException {
+
+    // ARRANGE
+    Task task = testEnvironment.createMultiLanguageTask();
+
+    // ACT
+    TaskCopy taskCopy = task.acquireTestingCopy();
+
+    // ASSERT
+    TaskInfo javaTaskInfo = taskCopy.getLanguage("java").getInfo();
+    assertThat(javaTaskInfo.getName()).isEqualTo("Base name");
+    assertThat(javaTaskInfo.getImage()).isEqualTo("Java image");
+    assertThat(javaTaskInfo.getDifficulty()).isEqualTo("Base difficulty");
+    assertThat(javaTaskInfo.getProblemStatement()).isEqualTo("Java overriden problem statement");
+
+    TaskInfo javascriptTaskInfo = taskCopy.getLanguage("javascript").getInfo();
+    assertThat(javascriptTaskInfo.getName()).isEqualTo("Base name");
+    assertThat(javascriptTaskInfo.getImage()).isEqualTo("Javascript image");
+    assertThat(javascriptTaskInfo.getDifficulty()).isEqualTo("Javascript overriden difficulty");
+    assertThat(javascriptTaskInfo.getProblemStatement()).isEqualTo("Base problem statement");
+
+  }
+
+  @Test
+  public void checkMultiLanguageFileCopy() throws TaskNotFoundException, RepoExpiredException, RepoNotFoundException, RepoStorageException, TaskStorageException, GitAPIException, CriterionNotFoundException, RetiredTaskException, IOException, InvalidTaskSpecificationException, RepoFileNotFoundException, RepoTagNotFoundException {
+
+    // ARRANGE
+    String expectedSkeletonContents = TestEnvironment.getScriptContents("Java Skeleton");
+
+    Task task = testEnvironment.createMultiLanguageTask();
+    Repo repo = testEnvironment.createRepo(task, "java");
+
+    // ACT
+    byte[] skeletonFileContents = repo.readFile("HEAD", "skeleton.sh");
+
+    // ASSERT
+    assertThat(new String(skeletonFileContents)).isEqualTo(expectedSkeletonContents);
   }
 }

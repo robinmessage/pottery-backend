@@ -28,13 +28,7 @@ import javax.ws.rs.core.StreamingOutput;
 import org.eclipse.jgit.lib.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoExpiredException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoFileNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoStorageException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoTagNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RetiredTaskException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskNotFoundException;
+import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.*;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.FileData;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.RepoInfo;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.RepoTag;
@@ -87,12 +81,17 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
       throw new RetiredTaskException("Cannot start a new repository for task " + taskId);
     }
     try (TaskCopy c = usingTestingVersion ? t.acquireTestingCopy() : t.acquireRegisteredCopy()) {
-      Repo r = repoFactory.createInstance(taskId, usingTestingVersion, expiryDate, remote, language);
-      RepoInfo info = r.toRepoInfo();
-      if (!info.isRemote()) {
-        r.copyFiles(c);
+      try {
+        TaskCopy.Language taskCopyLanguage = c.getLanguage(language);
+        Repo r = repoFactory.createInstance(taskId, usingTestingVersion, expiryDate, remote, language);
+        RepoInfo info = r.toRepoInfo();
+        if (!info.isRemote()) {
+          r.copyFiles(taskCopyLanguage);
+        }
+        return info;
+      } catch (InvalidTaskSpecificationException e) {
+        throw new TaskNotFoundException("Specified anguage not available for this task");
       }
-      return info;
     }
   }
 

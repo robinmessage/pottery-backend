@@ -221,72 +221,75 @@ public class TaskCopyBuilder {
   private boolean compileFiles(TaskConfig taskConfig, ContainerManager containerManager)
       throws ApiUnavailableException {
     String copyId = taskCopy.getCopyId();
-    TaskInfo taskInfo = taskCopy.getInfo();
-    String image = taskInfo.getImage();
 
-    LOG.info("Compiling tests for task {} in {}", taskInfo.getTaskId(), copyId);
+    for(TaskCopy.Language taskCopy : taskCopy.getCopyInEachLanguage()) {
+      TaskInfo taskInfo = taskCopy.getInfo();
+      String image = taskInfo.getImage();
 
-    builderInfo.setStatus(BuilderInfo.STATUS_COMPILING_TEST);
-    ContainerExecResponse<String> r =
-        containerManager.execTaskCompilation(
-            taskCopy.getLocation(), image, taskInfo.getTaskCompilationRestrictions());
-    builderInfo.setTestCompileResponse(r.getResponse());
-    if (!r.isSuccess()) {
-      builderInfo.setException(
-          new InvalidTaskSpecificationException(
-              "Failed to compile testing code in task. Compiler response was: "
-                  + r.getRawResponse()));
-      return false;
-    }
+      LOG.info("Compiling tests for task {} in {} for language {}", taskInfo.getTaskId(), copyId, taskInfo.getLanguage());
 
-    builderInfo.setStatus(BuilderInfo.STATUS_COMPILING_SOLUTION);
-    // Test it against the model answer
-    ContainerExecResponse<String> r2 =
-        containerManager.execCompilation(
-            taskConfig.getSolutionDir(copyId),
-            taskConfig.getCompileDir(copyId),
-            image,
-            taskInfo.getCompilationRestrictions());
-    builderInfo.setSolutionCompileResponse(r2.getResponse());
-    if (!r2.isSuccess()) {
-      builderInfo.setException(
-          new InvalidTaskSpecificationException(
-              "Failed to compile solution when testing task during registration. Compiler "
-                  + "response was: "
-                  + r2.getRawResponse()));
-      return false;
-    }
+      builderInfo.setStatus(BuilderInfo.STATUS_COMPILING_TEST);
+      ContainerExecResponse<String> r =
+          containerManager.execTaskCompilation(
+              taskCopy.getLocation(), image, taskInfo.getTaskCompilationRestrictions());
+      builderInfo.setTestCompileResponse(r.getResponse());
+      if (!r.isSuccess()) {
+        builderInfo.setException(
+            new InvalidTaskSpecificationException(
+                "Failed to compile testing code in task. Compiler response was: "
+                    + r.getRawResponse()));
+        return false;
+      }
 
-    builderInfo.setStatus(BuilderInfo.STATUS_TESTING_SOLUTION);
-    ContainerExecResponse<HarnessResponse> r3 =
-        containerManager.execHarness(
-            taskConfig.getSolutionDir(copyId),
-            taskConfig.getHarnessDir(copyId),
-            image,
-            taskInfo.getHarnessRestrictions());
-    builderInfo.setHarnessResponse(r3.getResponse());
-    if (!r3.getResponse().isCompleted()) {
-      builderInfo.setException(
-          new InvalidTaskSpecificationException(
-              "Failed to run harness when testing task during registration. Harness response was: "
-                  + r3.getRawResponse()));
-      return false;
-    }
+      builderInfo.setStatus(BuilderInfo.STATUS_COMPILING_SOLUTION);
+      // Test it against the model answer
+      ContainerExecResponse<String> r2 =
+          containerManager.execCompilation(
+              taskConfig.getSolutionDir(copyId),
+              taskConfig.getCompileDir(copyId),
+              image,
+              taskInfo.getCompilationRestrictions());
+      builderInfo.setSolutionCompileResponse(r2.getResponse());
+      if (!r2.isSuccess()) {
+        builderInfo.setException(
+            new InvalidTaskSpecificationException(
+                "Failed to compile solution when testing task during registration. Compiler "
+                    + "response was: "
+                    + r2.getRawResponse()));
+        return false;
+      }
 
-    ContainerExecResponse<ValidatorResponse> r4 =
-        containerManager.execValidator(
-            taskConfig.getValidatorDir(copyId),
-            r3.getResponse(),
-            image,
-            taskInfo.getValidatorRestrictions());
-    builderInfo.setValidatorResponse(r4.getResponse());
-    if (!r4.getResponse().isCompleted()) {
-      builderInfo.setException(
-          new InvalidTaskSpecificationException(
-              "Failed to validate harness results when testing task during registration. "
-                  + "Validator response was: "
-                  + r4.getRawResponse()));
-      return false;
+      builderInfo.setStatus(BuilderInfo.STATUS_TESTING_SOLUTION);
+      ContainerExecResponse<HarnessResponse> r3 =
+          containerManager.execHarness(
+              taskConfig.getSolutionDir(copyId),
+              taskConfig.getHarnessDir(copyId),
+              image,
+              taskInfo.getHarnessRestrictions());
+      builderInfo.setHarnessResponse(r3.getResponse());
+      if (!r3.getResponse().isCompleted()) {
+        builderInfo.setException(
+            new InvalidTaskSpecificationException(
+                "Failed to run harness when testing task during registration. Harness response was: "
+                    + r3.getRawResponse()));
+        return false;
+      }
+
+      ContainerExecResponse<ValidatorResponse> r4 =
+          containerManager.execValidator(
+              taskConfig.getValidatorDir(copyId),
+              r3.getResponse(),
+              image,
+              taskInfo.getValidatorRestrictions());
+      builderInfo.setValidatorResponse(r4.getResponse());
+      if (!r4.getResponse().isCompleted()) {
+        builderInfo.setException(
+            new InvalidTaskSpecificationException(
+                "Failed to validate harness results when testing task during registration. "
+                    + "Validator response was: "
+                    + r4.getRawResponse()));
+        return false;
+      }
     }
 
     builderInfo.setStatus(BuilderInfo.STATUS_SUCCESS);

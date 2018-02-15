@@ -60,7 +60,11 @@ public class TaskConfig {
   }
 
   public File getSkeletonDir(String copyId) {
-    return new File(getTaskCopyDir(copyId), "skeleton");
+    return getSkeletonDir(getTaskCopyDir(copyId));
+  }
+
+  public File getSkeletonDir(File copyDirectory) {
+    return new File(copyDirectory, "skeleton");
   }
 
   public File getLocalTaskDefinitionDir(String taskId) {

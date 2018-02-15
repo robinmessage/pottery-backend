@@ -56,15 +56,7 @@ import uk.ac.cam.cl.dtg.teaching.pottery.config.RepoConfig;
 import uk.ac.cam.cl.dtg.teaching.pottery.containers.ContainerExecResponse;
 import uk.ac.cam.cl.dtg.teaching.pottery.containers.ContainerManager;
 import uk.ac.cam.cl.dtg.teaching.pottery.database.Database;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.NoHeadInRepoException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoExpiredException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoFileNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoStorageException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoTagNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.SubmissionNotFoundException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.SubmissionStorageException;
-import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskNotFoundException;
+import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.*;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.RepoInfo;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.Submission;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.TaskInfo;
@@ -197,7 +189,7 @@ public class Repo {
   }
 
   /** Recursively copy all files from the given sourceLocation and add them to the repository. */
-  public void copyFiles(TaskCopy task) throws RepoStorageException, RepoExpiredException {
+  public void copyFiles(TaskCopy.Language task) throws RepoStorageException, RepoExpiredException {
     throwIfRepoExpired();
     throwIfRemote();
     try (AutoCloseableLock ignored = lock.takeFileWritingLock()) {
@@ -309,6 +301,8 @@ public class Repo {
                   repoInfo.isUsingTestingVersion()
                       ? t.acquireTestingCopy()
                       : t.acquireRegisteredCopy()) {
+                TaskCopy.Language cl;
+                cl = c.getLanguage(repoInfo.getLanguage());
                 try (AutoCloseableLock ignored = lock.takeFileWritingLock()) {
                   try {
                     setVersionToTest(tag);
@@ -320,7 +314,7 @@ public class Repo {
                   }
 
                   File codeDir = repoTestingDirectory;
-                  TaskInfo taskInfo = c.getInfo();
+                  TaskInfo taskInfo = cl.getInfo();
                   String image = taskInfo.getImage();
                   updateSubmission(builder.setStatus(Submission.STATUS_COMPILATION_RUNNING));
                   ContainerExecResponse<String> compilationResponse;
@@ -328,7 +322,7 @@ public class Repo {
                     compilationResponse =
                         containerManager.execCompilation(
                             codeDir,
-                            c.getCompileRoot(),
+                            cl.getCompileRoot(),
                             image,
                             taskInfo.getCompilationRestrictions());
                   } catch (ApiUnavailableException e) {
@@ -359,7 +353,7 @@ public class Repo {
                   try {
                     harnessResponse =
                         containerManager.execHarness(
-                            codeDir, c.getHarnessRoot(), image, taskInfo.getHarnessRestrictions());
+                            codeDir, cl.getHarnessRoot(), image, taskInfo.getHarnessRestrictions());
                   } catch (ApiUnavailableException e) {
                     LOG.warn("Docker API unavailable when trying to run harness step. Retrying", e);
                     updateSubmission(
@@ -384,7 +378,7 @@ public class Repo {
                   try {
                     validatorResponse =
                         containerManager.execValidator(
-                            c.getValidatorRoot(),
+                            cl.getValidatorRoot(),
                             harnessResponse.getResponse(),
                             image,
                             taskInfo.getValidatorRestrictions());
@@ -457,6 +451,9 @@ public class Repo {
                 }
               } catch (TaskNotFoundException e1) {
                 updateSubmission(builder.addErrorMessage("Task no longer available"));
+                return STATUS_FAILED;
+              } catch (InvalidTaskSpecificationException e) {
+                updateSubmission(builder.addErrorMessage("Task not available in requested language"));
                 return STATUS_FAILED;
               }
               return Job.STATUS_OK;

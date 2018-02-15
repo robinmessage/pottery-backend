@@ -21,13 +21,9 @@ package uk.ac.cam.cl.dtg.teaching.pottery.task;
 import com.google.common.collect.ImmutableList;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.stream.Collectors;
+
+import com.google.common.collect.ImmutableSet;
 import uk.ac.cam.cl.dtg.teaching.pottery.FileUtil;
 import uk.ac.cam.cl.dtg.teaching.pottery.TwoPhaseLatch;
 import uk.ac.cam.cl.dtg.teaching.pottery.config.TaskConfig;
@@ -48,7 +44,7 @@ public class TaskCopy implements AutoCloseable {
 
   private String copyId;
   private TaskConfig config;
-  private TaskInfo info;
+  private TaskInfoWrapper info;
   private TwoPhaseLatch latch = new TwoPhaseLatch();
 
   /**
@@ -66,68 +62,78 @@ public class TaskCopy implements AutoCloseable {
     super();
     this.copyId = copyId;
     this.config = config;
-    this.info = TaskInfos.load(taskId, config.getTaskCopyDir(copyId), listSkeleton());
+    this.info = TaskInfos.load(taskId, config.getTaskCopyDir(copyId), config);
   }
 
   public String getCopyId() {
     return copyId;
   }
 
-  public TaskInfo getInfo() {
-    return info;
-  }
-
   public File getLocation() {
     return config.getTaskCopyDir(copyId);
   }
 
-  private List<String> listSkeleton() throws TaskStorageException {
-    File sourceLocation = config.getSkeletonDir(copyId);
-    if (!sourceLocation.exists()) {
-      return new LinkedList<>();
+  public TaskInfo getBaseInfo() {
+    return this.info.getBaseTaskInfo();
+  }
+
+  public ImmutableSet<String> getLanguages() {
+    return ImmutableSet.copyOf(info.getLanguages());
+  }
+
+  public Language getLanguage(String language) throws InvalidTaskSpecificationException {
+    if (!info.getLanguages().contains(language)) {
+      throw new InvalidTaskSpecificationException("Language " + language + " is not available for copy " + copyId);
     }
 
-    try {
-      List<String> result = new LinkedList<>();
-      Files.walkFileTree(
-          sourceLocation.toPath(),
-          new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-              Path localLocation = sourceLocation.toPath().relativize(file);
-              result.add(localLocation.toString());
-              return FileVisitResult.CONTINUE;
-            }
-          });
-      return result;
-    } catch (IOException e) {
-      throw new TaskStorageException(
-          "Failed to access skeleton files for task "
-              + info.getTaskId()
-              + " stored in copy "
-              + copyId,
-          e);
+    return new Language(language, info.isSimpleTask());
+  }
+
+  public Iterable<Language> getCopyInEachLanguage() {
+    return info.getLanguages().stream().map(language -> new Language(language, info.isSimpleTask())).collect(Collectors.toList());
+  }
+
+  public class Language {
+    private final String language;
+    private final boolean simpleTask;
+
+    Language(String language, boolean simpleTask) {
+      this.language = language;
+      this.simpleTask = simpleTask;
     }
-  }
 
-  /**
-   * Copy the skeleton files from this task copy to the target directory given (this will be in a
-   * candidates repo).
-   */
-  public ImmutableList<String> copySkeleton(File destination) throws IOException {
-    return FileUtil.copyFilesRecursively(config.getSkeletonDir(copyId), destination);
-  }
+    public TaskInfo getInfo() {
+      return info.getTaskInfo(language);
+    }
 
-  public File getCompileRoot() {
-    return config.getCompileDir(copyId);
-  }
+    public File getLocation() {
+      return TaskCopy.this.getLocation();
+    }
 
-  public File getHarnessRoot() {
-    return config.getHarnessDir(copyId);
-  }
+    private File getLanguageDir(File directory) {
+      if (simpleTask) return directory;
+      return new File(directory + "." + language);
+    }
 
-  public File getValidatorRoot() {
-    return config.getValidatorDir(copyId);
+    /**
+     * Copy the skeleton files from this task copy to the target directory given (this will be in a
+     * candidates repo).
+     */
+    public ImmutableList<String> copySkeleton(File destination) throws IOException {
+      return FileUtil.copyFilesRecursively(getLanguageDir(config.getSkeletonDir(copyId)), destination);
+    }
+
+    public File getCompileRoot() {
+      return getLanguageDir(config.getCompileDir(copyId));
+    }
+
+    public File getHarnessRoot() {
+      return getLanguageDir(config.getHarnessDir(copyId));
+    }
+
+    public File getValidatorRoot() {
+      return getLanguageDir(config.getValidatorDir(copyId));
+    }
   }
 
   public boolean acquire() {
