@@ -112,7 +112,7 @@ public class TaskCopy implements AutoCloseable {
 
     private File getLanguageDir(File directory) {
       if (simpleTask) return directory;
-      return new File(directory + "." + language);
+      return new File(directory + getSuffix());
     }
 
     /**
@@ -121,6 +121,15 @@ public class TaskCopy implements AutoCloseable {
      */
     public ImmutableList<String> copySkeleton(File destination) throws IOException {
       return FileUtil.copyFilesRecursively(getLanguageDir(config.getSkeletonDir(copyId)), destination);
+    }
+
+    public String getSuffix() {
+      if (simpleTask) return "";
+      return "." + language;
+    }
+
+    public File getSolutionRoot() {
+      return getLanguageDir(config.getSolutionDir(copyId));
     }
 
     public File getCompileRoot() {

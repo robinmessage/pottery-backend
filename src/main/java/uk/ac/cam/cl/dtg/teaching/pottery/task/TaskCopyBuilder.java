@@ -231,7 +231,7 @@ public class TaskCopyBuilder {
       builderInfo.setStatus(BuilderInfo.STATUS_COMPILING_TEST);
       ContainerExecResponse<String> r =
           containerManager.execTaskCompilation(
-              taskCopy.getLocation(), image, taskInfo.getTaskCompilationRestrictions());
+              taskCopy.getLocation(), taskCopy.getSuffix(), image, taskInfo.getTaskCompilationRestrictions());
       builderInfo.setTestCompileResponse(r.getResponse());
       if (!r.isSuccess()) {
         builderInfo.setException(
@@ -245,8 +245,8 @@ public class TaskCopyBuilder {
       // Test it against the model answer
       ContainerExecResponse<String> r2 =
           containerManager.execCompilation(
-              taskConfig.getSolutionDir(copyId),
-              taskConfig.getCompileDir(copyId),
+              taskCopy.getSolutionRoot(),
+              taskCopy.getCompileRoot(),
               image,
               taskInfo.getCompilationRestrictions());
       builderInfo.setSolutionCompileResponse(r2.getResponse());
@@ -262,8 +262,8 @@ public class TaskCopyBuilder {
       builderInfo.setStatus(BuilderInfo.STATUS_TESTING_SOLUTION);
       ContainerExecResponse<HarnessResponse> r3 =
           containerManager.execHarness(
-              taskConfig.getSolutionDir(copyId),
-              taskConfig.getHarnessDir(copyId),
+              taskCopy.getSolutionRoot(),
+              taskCopy.getHarnessRoot(),
               image,
               taskInfo.getHarnessRestrictions());
       builderInfo.setHarnessResponse(r3.getResponse());
@@ -277,7 +277,7 @@ public class TaskCopyBuilder {
 
       ContainerExecResponse<ValidatorResponse> r4 =
           containerManager.execValidator(
-              taskConfig.getValidatorDir(copyId),
+              taskCopy.getValidatorRoot(),
               r3.getResponse(),
               image,
               taskInfo.getValidatorRestrictions());

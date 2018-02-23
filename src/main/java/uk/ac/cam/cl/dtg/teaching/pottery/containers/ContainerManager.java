@@ -91,16 +91,16 @@ public class ContainerManager implements Stoppable {
    * the task repo.
    */
   public ContainerExecResponse<String> execTaskCompilation(
-      File taskDirHost, String imageName, ContainerRestrictions restrictions)
+      File taskDirHost, String suffix, String imageName, ContainerRestrictions restrictions)
       throws ApiUnavailableException {
     try {
       return containerBackend.executeContainer(
           ExecutionConfig.builder()
               .addPathSpecification(PathSpecification.create(taskDirHost, "/task", true))
-              .addCommand("/task/compile-test.sh")
-              .addCommand("/task/test")
-              .addCommand("/task/harness")
-              .addCommand("/task/validator")
+              .addCommand("/task/compile-test" + suffix + ".sh")
+              .addCommand("/task/test" + suffix)
+              .addCommand("/task/harness" + suffix)
+              .addCommand("/task/validator" + suffix)
               .setImageName(imageName)
               .setContainerRestrictions(restrictions)
               .setLocalUserId(config.getUid())

@@ -220,13 +220,32 @@ class TestEnvironment {
                    .setDirectory(copyRoot)
                    .call()) {
 
-        mkJsonPrintingScript(copyRoot, "compile-test.sh", "Compiling test", g);
+        mkJsonPrintingScript(copyRoot, "compile-test.java.sh", "Compiling test", g);
 
-        mkJsonPrintingScript(copyRoot, "compile/compile-solution.sh", "Compiling solution", g);
+        mkJsonPrintingScript(copyRoot, "compile.java/compile-solution.sh", "Compiling solution", g);
 
         mkJsonPrintingScript(
             copyRoot,
-            "harness/run-harness.sh",
+            "harness.java/run-harness.sh",
+            new HarnessResponse(
+                new LinkedList<>(
+                    ImmutableList.of(
+                        new HarnessPart(
+                            "A no-op task",
+                            ImmutableList.of("Doing nothing"),
+                            ImmutableList.of(new Measurement("correctness", "true", "id")),
+                            null,
+                            null))),
+                true),
+            g);
+
+        mkJsonPrintingScript(copyRoot, "compile-test.javascript.sh", "Compiling test", g);
+
+        mkJsonPrintingScript(copyRoot, "compile.javascript/compile-solution.sh", "Compiling solution", g);
+
+        mkJsonPrintingScript(
+            copyRoot,
+            "harness.javascript/run-harness.sh",
             new HarnessResponse(
                 new LinkedList<>(
                     ImmutableList.of(
@@ -283,7 +302,13 @@ class TestEnvironment {
 
         mkJsonPrintingScript(
             copyRoot,
-            "validator/run-validator.sh",
+            "validator.java/run-validator.sh",
+            new ValidatorResponse(true, null, ImmutableList.of(), null),
+            g);
+
+        mkJsonPrintingScript(
+            copyRoot,
+            "validator.javascript/run-validator.sh",
             new ValidatorResponse(true, null, ImmutableList.of(), null),
             g);
 
