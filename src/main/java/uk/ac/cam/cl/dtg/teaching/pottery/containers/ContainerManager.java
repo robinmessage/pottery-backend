@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -272,6 +270,9 @@ public class ContainerManager implements Stoppable {
 
     void recordErrorReason(ContainerExecResponse response, String stepName);
 
+    void startStep(String stepName);
+
+    void finishStep(String stepName, String status, long msec, String output);
   }
 
   public interface ErrorHandlingStepRunnerCallback extends StepRunnerCallback {
@@ -308,6 +309,7 @@ public class ContainerManager implements Stoppable {
       if (execution == null) {
         continue;
       }
+      callback.startStep(stepName);
       try {
         response =
             execStep(
@@ -321,6 +323,13 @@ public class ContainerManager implements Stoppable {
             + stepName + " step.", e);
       }
       stepResults.put(stepName, response);
+      callback.finishStep(stepName,
+          response.status() == Status.COMPLETED
+              ? Submission.STATUS_COMPLETE
+              : Submission.STATUS_FAILED,
+          response.executionTimeMs(),
+          response.response()
+      );
       if (response.status() != Status.COMPLETED) {
         break;
       }
