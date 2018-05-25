@@ -75,8 +75,6 @@ CREATE TABLE submissions (
     repoid character varying(255) NOT NULL,
     tag character varying(255) NOT NULL,
     status character varying(255) NOT NULL,
-    output text,
-    waittimems bigint DEFAULT '-1'::integer NOT NULL,
     errormessage text,
     datescheduled timestamp without time zone
 );
