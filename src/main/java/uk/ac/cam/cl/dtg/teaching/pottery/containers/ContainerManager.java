@@ -295,7 +295,7 @@ public class ContainerManager implements Stoppable {
   public int runSteps(TaskCopy c, File codeDir, TaskInfo taskInfo, String variant,
                       StepRunnerCallback callback)
       throws ApiUnavailableException {
-    callback.setStatus(Submission.STATUS_STEPS_RUNNING);
+    callback.setStatus(Submission.STATUS_RUNNING);
 
     Map<String, ContainerExecResponse> stepResults = new HashMap<>();
     ContainerExecResponse response = null;
@@ -336,7 +336,7 @@ public class ContainerManager implements Stoppable {
     }
 
     if (response != null && response.status() != Status.COMPLETED) {
-      callback.setStatus(Submission.STATUS_STEPS_FAILED);
+      callback.setStatus(Submission.STATUS_FAILED);
       callback.recordErrorReason(response, stepName);
       if (response.status() != Status.FAILED_EXITCODE) {
         return Job.STATUS_FAILED;
