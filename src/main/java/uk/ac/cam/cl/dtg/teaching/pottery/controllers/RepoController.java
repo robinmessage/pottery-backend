@@ -21,6 +21,9 @@ import com.google.inject.Inject;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import javax.inject.Named;
+import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
@@ -43,17 +46,20 @@ import uk.ac.cam.cl.dtg.teaching.pottery.repo.RepoFactory;
 import uk.ac.cam.cl.dtg.teaching.pottery.task.Task;
 import uk.ac.cam.cl.dtg.teaching.pottery.task.TaskCopy;
 import uk.ac.cam.cl.dtg.teaching.pottery.task.TaskIndex;
+import uk.ac.cam.cl.dtg.teaching.pottery.worker.Worker;
 
 public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.RepoController {
 
   protected static final Logger LOG = LoggerFactory.getLogger(RepoController.class);
+  private final Worker worker;
   private RepoFactory repoFactory;
   private TaskIndex taskIndex;
 
   /** Create a new RepoController. */
   @Inject
-  public RepoController(RepoFactory repoFactory, TaskIndex taskIndex) {
+  public RepoController(@Named(Repo.PARAMETERISATION_WORKER_NAME) Worker worker, RepoFactory repoFactory, TaskIndex taskIndex) {
     super();
+    this.worker = worker;
     this.repoFactory = repoFactory;
     this.taskIndex = taskIndex;
   }
@@ -64,7 +70,8 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
       Boolean usingTestingVersion,
       Integer validityMinutes,
       String variant,
-      String remote)
+      String remote,
+      Integer seed)
       throws TaskNotFoundException, RepoExpiredException, RepoStorageException,
           RetiredTaskException, RepoNotFoundException, TaskMissingVariantException {
     if (taskId == null) {
@@ -78,6 +85,9 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
     }
     if (remote == null) {
       throw new TaskNotFoundException("No remote specified");
+    }
+    if (seed == null) {
+      seed = 0;
     }
     Calendar cal = Calendar.getInstance();
     if (validityMinutes == -1) {
@@ -94,7 +104,8 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
       if (!c.getInfo().getVariants().contains(variant)) {
         throw new TaskMissingVariantException("Variant " + variant + " is not defined");
       }
-      Repo r = repoFactory.createInstance(taskId, usingTestingVersion, expiryDate, variant, remote);
+      Repo r = repoFactory.createInstance(
+          c, usingTestingVersion, expiryDate, variant, remote, seed);
       RepoInfo info = r.toRepoInfo();
       if (!info.isRemote()) {
         r.copyFiles(c);
@@ -104,12 +115,21 @@ public class RepoController implements uk.ac.cam.cl.dtg.teaching.pottery.api.Rep
   }
 
   @Override
-  public RepoInfo makeRepo(
-      String taskId, Boolean usingTestingVersion, Integer validityMinutes, String variant)
+  public RepoInfo makeRepo(String taskId, Boolean usingTestingVersion, Integer validityMinutes,
+                           String variant, Integer seed)
       throws TaskNotFoundException, RepoExpiredException, RepoNotFoundException,
           RetiredTaskException, RepoStorageException, TaskMissingVariantException {
     return makeRemoteRepo(
-        taskId, usingTestingVersion, validityMinutes, variant, RepoInfo.REMOTE_UNSET);
+        taskId, usingTestingVersion, validityMinutes, variant, RepoInfo.REMOTE_UNSET, seed);
+  }
+
+  @Override
+  public void getParameterisedProblemStatement(String repoId, final AsyncResponse asyncResponse)
+      throws RepoStorageException, RepoNotFoundException {
+    asyncResponse.setTimeout(30, TimeUnit.SECONDS);
+    repoFactory.getInstance(repoId).getParameterisedProblemStatement(worker, problemStatement -> {
+      asyncResponse.resume(Response.ok(problemStatement, "text/plain").build());
+    });
   }
 
   @Override

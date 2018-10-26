@@ -19,6 +19,7 @@ package uk.ac.cam.cl.dtg.teaching.pottery.task;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.jgit.api.Git;
@@ -35,10 +36,7 @@ import uk.ac.cam.cl.dtg.teaching.pottery.database.Database;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.InvalidTaskSpecificationException;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskCopyNotFoundException;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskStorageException;
-import uk.ac.cam.cl.dtg.teaching.pottery.model.BuilderInfo;
-import uk.ac.cam.cl.dtg.teaching.pottery.model.Execution;
-import uk.ac.cam.cl.dtg.teaching.pottery.model.TaskInfo;
-import uk.ac.cam.cl.dtg.teaching.pottery.model.Testcase;
+import uk.ac.cam.cl.dtg.teaching.pottery.model.*;
 import uk.ac.cam.cl.dtg.teaching.pottery.repo.RepoFactory;
 import uk.ac.cam.cl.dtg.teaching.pottery.worker.Job;
 import uk.ac.cam.cl.dtg.teaching.pottery.worker.Worker;
@@ -296,7 +294,7 @@ public class TaskCopyBuilder {
                 testCodeFolder,
                 taskInfo,
                 testcase.getAction(),
-                variant,
+                new RepoInfo("null", taskInfo.getTaskId(), false, new Date(), variant, null, 0),
                 new ContainerManager.StepRunnerCallback() {
                   @Override
                   public void setStatus(String status) {

@@ -82,8 +82,8 @@ public class TaskCopy implements AutoCloseable {
     return config.getTaskCopyDir(copyId);
   }
 
-  public File getStepLocation(String variant) {
-    return config.getStepDir(copyId, variant);
+  public File getStepLocation(String step) {
+    return config.getStepDir(copyId, step);
   }
 
   public File getSolutionLocation(String variant) {

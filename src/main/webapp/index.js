@@ -269,60 +269,52 @@ $(document).ready(
               })
             });
 
-			$("#startTaskForm").submit(function(event) {
-				event.preventDefault();
-				$.ajax({
-					url: 'api/repo',
-					type: 'POST',
-					data : {"taskId" : $("#taskId").val(), "validityMinutes": $("#validity").val(), "variant": $("#variant").val() },
-					success: function (result) {
-						reportSuccess(result);
-						$("#repoId").val(result.repoId);
-					},
-					error : function(xhr,textStatus,errorThrown) {
-						reportError(xhr);
-					}
-				});
-
-				return false;
-			});
-
-			$("#startTestingTaskForm").submit(function(event) {
-				event.preventDefault();
-				$.ajax({
-					url: 'api/repo',
-					type: 'POST',
-					data : {"taskId" : $("#taskId").val(), "usingTestingVersion":"true", "validityMinutes": $("#validityTest").val(), "variant": $("#variantTest").val() },
-					success: function (result) {
-						reportSuccess(result);
-						$("#repoId").val(result.repoId);
-					},
-					error : function(xhr,textStatus,errorThrown) {
-						reportError(xhr);
-					}
-				});
-
-				return false;
-			});
-
-
-            $("#startRemoteTaskForm").submit(function(event) {
-                event.preventDefault();
-                $.ajax({
-                    url: 'api/repo/remote',
-                    type: 'POST',
-                    data : {"taskId" : $("#taskId").val(), "validityMinutes": $("#validityRemote").val(),"remote":$("#repoRemote").val(), "variant": $("#variantRemote").val() },
-                    success: function (result) {
-                        reportSuccess(result);
-                        $("#repoId").val(result.repoId);
-                    },
-                    error : function(xhr,textStatus,errorThrown) {
-                        reportError(xhr);
+            function startTask(data) {
+                return function(event) {
+                    event.preventDefault();
+                    if ($("#seed").val() != "") {
+                        data = {...data, "seed": $("#seed").val() };
                     }
-                });
+                    $.ajax({
+                        url: 'api/repo',
+                        type: 'POST',
+                        data : {...data, "taskId" : $("#taskId").val(), "validityMinutes": $("#validity").val(), "variant": $("#variant").val()},
+                        success: function (result) {
+                            reportSuccess(result);
+                            $("#repoId").val(result.repoId);
+                        },
+                        error : function(xhr,textStatus,errorThrown) {
+                            reportError(xhr);
+                        }
+                    });
 
-                return false;
+                    return false;
+                };
+            }
+
+			$("#startTask").click(startTask({}));
+
+			$("#startTestingTask").click(startTask({"usingTestingVersion":"true"}));
+
+			$("#startRemoteTask").click((event) => {
+			    return startTask({"remote":$("#repoRemote").val()})(event);
             });
+
+            $("#showParameterisation").submit(function(event) {
+				event.preventDefault();
+				$.ajax({
+					url: 'api/repo/'+$("#repoId").val()+'/problemStatement',
+					type: 'GET',
+					success: function (result) {
+						reportSuccess(result);
+					},
+					error : function(xhr,textStatus,errorThrown) {
+						reportError(xhr);
+					}
+				});
+
+				return false;
+			});
 
 
             $("#listRepoTags").submit(function(event) {

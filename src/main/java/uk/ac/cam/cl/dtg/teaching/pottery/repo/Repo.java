@@ -24,7 +24,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.commons.io.IOUtils;
 import org.eclipse.jgit.api.CommitCommand;
@@ -47,6 +49,7 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import uk.ac.cam.cl.dtg.teaching.docker.ApiUnavailableException;
 import uk.ac.cam.cl.dtg.teaching.pottery.FileUtil;
 import uk.ac.cam.cl.dtg.teaching.pottery.FourLevelLock;
 import uk.ac.cam.cl.dtg.teaching.pottery.FourLevelLock.AutoCloseableLock;
@@ -64,6 +67,7 @@ import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.RepoTagNotFoundException;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.SubmissionNotFoundException;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.SubmissionStorageException;
 import uk.ac.cam.cl.dtg.teaching.pottery.exceptions.TaskNotFoundException;
+import uk.ac.cam.cl.dtg.teaching.pottery.model.Parameterisation;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.RepoInfo;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.Submission;
 import uk.ac.cam.cl.dtg.teaching.pottery.model.TaskInfo;
@@ -330,7 +334,7 @@ public class Repo {
                         codeDir,
                         taskInfo,
                         action,
-                        variant,
+                        repoInfo,
                         new ContainerManager.ErrorHandlingStepRunnerCallback() {
                           @Override
                           public void apiUnavailable(String errorMessage, Throwable exception) {
@@ -906,4 +910,56 @@ public class Repo {
   private String getSubmissionKey(String tag, String action) {
     return tag + "," + action;
   }
+
+  public static final String PARAMETERISATION_WORKER_NAME = "PARAMETERISATION_WORKER";
+
+  public void getParameterisedProblemStatement(Worker w, Consumer<String> outputFunction) {
+    w.schedule(
+        new Job() {
+          @Override
+          public int execute(
+              TaskIndex taskIndex,
+              RepoFactory repoFactory,
+              ContainerManager containerManager,
+              Database database) {
+            Task t;
+            try {
+              t = taskIndex.getTask(repoInfo.getTaskId());
+            } catch (TaskNotFoundException e1) {
+              return STATUS_FAILED;
+            }
+            try (TaskCopy c =
+                repoInfo.isUsingTestingVersion()
+                    ? t.acquireTestingCopy()
+                    : t.acquireRegisteredCopy()) {
+
+              Optional<Parameterisation> parameterisation = c.getInfo().getParameterisation();
+
+              LOG.info("Got the parameterisation " + parameterisation.map(p -> p.getCount()).orElse(-1));
+
+              if (parameterisation.isPresent()) {
+                File codeDir = repoTestingDirectory;
+                String variant = repoInfo.getVariant();
+                ContainerExecResponse response = containerManager.runParameterisation(c, codeDir,
+                    parameterisation.get(), variant, repoInfo);
+                LOG.info("Outputing response " + response.status());
+                final String responseText = response.response();
+                LOG.info("Outputing response " + responseText);
+                outputFunction.accept(responseText);
+              } else {
+                LOG.info("Outputing 2");
+                outputFunction.accept(c.getInfo().getProblemStatement());
+              }
+            } catch (TaskNotFoundException | ApiUnavailableException e) {
+              return STATUS_FAILED;
+            }
+            return STATUS_OK;
+          }
+
+          @Override
+          public String getDescription() {
+            return "Generating parameterised problem statement for " + repoInfo.getRepoId();
+          }
+        });
+    }
 }

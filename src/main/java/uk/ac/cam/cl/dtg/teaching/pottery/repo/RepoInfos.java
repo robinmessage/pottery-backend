@@ -28,7 +28,7 @@ public class RepoInfos {
   /** Look up a repo from the database by its repoId. */
   public static RepoInfo getByRepoId(String repoId, QueryRunner q) throws SQLException {
     return q.query(
-        "SELECT repoid,taskid,using_testing_version,expiryDate,variant,remote from"
+        "SELECT repoid,taskid,using_testing_version,expiryDate,variant,remote,mutation from"
             + " repos where repoid=?",
         rs -> {
           rs.next();
@@ -38,7 +38,8 @@ public class RepoInfos {
               rs.getBoolean("using_testing_version"),
               new Date(rs.getTimestamp("expiryDate").getTime()),
               rs.getString("variant"),
-              rs.getString("remote"));
+              rs.getString("remote"),
+              rs.getInt("mutation"));
         },
         repoId);
   }
@@ -47,12 +48,13 @@ public class RepoInfos {
   public static void insert(RepoInfo repoInfo, QueryRunner q) throws SQLException {
     q.update(
         "INSERT INTO repos(repoid,taskid,using_testing_version,expiryDate,variant,"
-            + "remote) values (?,?,?,?,?,?)",
+            + "remote,mutation) values (?,?,?,?,?,?,?)",
         repoInfo.getRepoId(),
         repoInfo.getTaskId(),
         repoInfo.isUsingTestingVersion(),
         new Timestamp(repoInfo.getExpiryDate().getTime()),
         repoInfo.getVariant(),
-        repoInfo.getRemote());
+        repoInfo.getRemote(),
+        repoInfo.getMutation());
   }
 }

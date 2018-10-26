@@ -35,11 +35,12 @@ abstract class Binding {
   static final String IMAGE_BINDING = "IMAGE";
   static final String SUBMISSION_BINDING = "SUBMISSION";
   static final String VARIANT_BINDING = "VARIANT";
+  static final String MUTATION_BINDING = "MUTATION";
   static final String TASK_BINDING = "TASK";
   static final String STEP_BINDING = "STEP";
   static final String SHARED_BINDING = "SHARED";
   static final String DEFAULT_EXECUTION = "default";
-  private static Pattern bindingRegex = Pattern.compile("@([a-zA-Z_][-a-zA-Z_0-9]*)@");
+  private static Pattern bindingRegex = Pattern.compile("@([a-zA-Z][-_a-zA-Z0-9]*)@");
 
   static ExecutionConfig.Builder applyBindings(
       String command,

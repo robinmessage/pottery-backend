@@ -38,13 +38,6 @@ public abstract class ContainerExecResponse {
   public abstract long executionTimeMs();
 
   public static ContainerExecResponse create(Status status, String response, long executionTimeMs) {
-    return new AutoValue_ContainerExecResponse(status, stripNull(response), executionTimeMs);
-  }
-
-  private static String stripNull(String v) {
-    if (v == null) {
-      return v;
-    }
-    return v.replace('\0', '?');
+    return new AutoValue_ContainerExecResponse(status, response, executionTimeMs);
   }
 }
